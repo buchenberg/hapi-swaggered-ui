@@ -1,9 +1,9 @@
-'use strict';
+'use strict'
 
-var path = require('path');
-var Hoek = require('hoek');
-var Joi = require('joi');
-var packageInfo = require('../package.json');
+const path = require('path')
+const Hoek = require('hoek')
+const Joi = require('joi')
+const packageInfo = require('../package.json')
 
 var SwaggerUIBundle = require('swagger-ui-dist').SwaggerUIBundle;
 var SwaggerUIStandalonePreset = require('swagger-ui-dist').SwaggerUIStandalonePreset;
@@ -12,7 +12,7 @@ var SwaggerUIStandalonePreset = require('swagger-ui-dist').SwaggerUIStandalonePr
 var swaggerUiPath = require('swagger-ui-dist').getAbsoluteFSPath();
 require('swagger-ui-dist/swagger-ui.css');
 
-var optionsSchema = Joi.object({
+const optionsSchema = Joi.object({
   title: Joi.string().required(),
   defaultTags: Joi.array().items(Joi.string()).optional(),
   path: Joi.string().optional(),
@@ -39,18 +39,27 @@ var optionsSchema = Joi.object({
     defaultValue: Joi.string().optional(),
     placeholder: Joi.string().optional()
   }).optional()]),
-  auth: Joi.alternatives([Joi.string(), Joi.object({
-    mode: Joi.string().valid('required', 'optional', 'try'),
-    scope: Joi.alternatives([Joi.string(), Joi.array()]).allow(false),
-    entity: Joi.string().valid('user', 'app', 'any'),
-    strategy: Joi.string(),
-    strategies: Joi.array().min(1),
-    payload: [Joi.string().valid('required', 'optional'), Joi.boolean()]
-  })]).allow(false),
+  auth: Joi.alternatives([
+    Joi.string(),
+    Joi.object({
+      mode: Joi.string().valid('required', 'optional', 'try'),
+      scope: Joi.alternatives([
+        Joi.string(),
+        Joi.array()
+      ]).allow(false),
+      entity: Joi.string().valid('user', 'app', 'any'),
+      strategy: Joi.string(),
+      strategies: Joi.array().min(1),
+      payload: [
+        Joi.string().valid('required', 'optional'),
+        Joi.boolean()
+      ]
+    })
+  ]).allow(false),
   templates: Joi.string().optional()
-});
+})
 
-var defaultOptions = {
+const defaultOptions = {
   title: 'swagger',
   swaggerOptions: {
     supportedSubmitMethods: ['head', 'get', 'post', 'put', 'patch', 'delete'],
@@ -66,75 +75,75 @@ var defaultOptions = {
     defaultValue: undefined,
     placeholder: undefined
   }
-};
+}
 
-exports.register = function (plugin, options, next) {
-  var settings = Hoek.applyToDefaults(defaultOptions, options || {}, true);
-  Joi.assert(settings, optionsSchema, 'Invalid options for hapi-swaggered-ui');
+exports.register = (plugin, options, next) => {
+  const settings = Hoek.applyToDefaults(defaultOptions, options || {}, true)
+  Joi.assert(settings, optionsSchema, 'Invalid options for hapi-swaggered-ui')
 
-  var routeModifiers = plugin.config || Hoek.reach(plugin, 'realm.modifiers');
-  var routePrefix = Hoek.reach(routeModifiers, 'route.prefix') || '';
+  const routeModifiers = plugin.config || Hoek.reach(plugin, 'realm.modifiers')
+  let routePrefix = Hoek.reach(routeModifiers, 'route.prefix') || ''
 
   if (settings.basePath != null) {
-    routePrefix = settings.basePath + routePrefix;
+    routePrefix = settings.basePath + routePrefix
   }
 
   if (settings.path != null) {
-    routePrefix = routePrefix + settings.path;
+    routePrefix = routePrefix + settings.path
   }
 
-  var internals = {
-    handler: function handler(request, reply) {
-      var hapiSwaggeredSettings = Hoek.reach(plugin, 'plugins.hapi-swaggered.settings');
-      var swaggerEndpoint = null;
+  const internals = {
+    handler (request, reply) {
+      const hapiSwaggeredSettings = Hoek.reach(plugin, 'plugins.hapi-swaggered.settings')
+      let swaggerEndpoint = null
 
       if (settings.swaggerEndpoint) {
-        swaggerEndpoint = options.swaggerEndpoint;
+        swaggerEndpoint = options.swaggerEndpoint
       } else if (hapiSwaggeredSettings && hapiSwaggeredSettings.endpoint) {
-        swaggerEndpoint = (hapiSwaggeredSettings.pluginRoutePrefix || '') + hapiSwaggeredSettings.endpoint;
+        swaggerEndpoint = (hapiSwaggeredSettings.pluginRoutePrefix || '') + hapiSwaggeredSettings.endpoint
 
         if (settings.basePath != null) {
-          swaggerEndpoint = settings.basePath + swaggerEndpoint;
+          swaggerEndpoint = settings.basePath + swaggerEndpoint
         }
       }
-      var context = {
+      const context = {
         routePrefix: routePrefix,
         title: settings.title,
         authorization: settings.authorization,
         version: packageInfo.version
-      };
+      }
 
       if (swaggerEndpoint) {
-        var swaggerOptions = {
+        let swaggerOptions = {
           url: swaggerEndpoint
-        };
+        }
 
-        var tags = null;
+        let tags = null
 
         if (request.query.tags) {
-          tags = request.query.tags;
-        }if (settings.defaultTags) {
-          tags = Array.isArray(settings.defaultTags) ? settings.defaultTags.join(',') : settings.defaultTags;
+          tags = request.query.tags
+        } if (settings.defaultTags) {
+          tags = Array.isArray(settings.defaultTags) ? settings.defaultTags.join(',') : settings.defaultTags
         }
 
         if (tags) {
-          swaggerOptions.url = swaggerEndpoint + '?tags=' + encodeURIComponent(tags);
+          swaggerOptions.url = `${swaggerEndpoint}?tags=${encodeURIComponent(tags)}`
         }
 
         if (settings.basePath != null) {
-          swaggerOptions.basePath = settings.basePath;
+          swaggerOptions.basePath = settings.basePath
         }
 
-        Object.assign(swaggerOptions, settings.swaggerOptions);
+        Object.assign(swaggerOptions, settings.swaggerOptions)
 
-        context.swaggerOptions = JSON.stringify(swaggerOptions);
-        context.oauthOptions = JSON.stringify(settings.oauthOptions || false);
-        return reply.view('index', context);
+        context.swaggerOptions = JSON.stringify(swaggerOptions)
+        context.oauthOptions = JSON.stringify(settings.oauthOptions || false)
+        return reply.view('index', context)
       } else {
-        return reply.view('error', context);
+        return reply.view('error', context)
       }
     }
-  };
+  }
 
   plugin.views({
     engines: {
@@ -144,11 +153,11 @@ exports.register = function (plugin, options, next) {
     },
     relativeTo: __dirname,
     path: settings.templates
-  });
+  })
 
-  var routePath = settings.path || '';
+  const routePath = settings.path || ''
 
-  plugin.route([settings.path || '/', routePath + '/index.html'].map(function (path) {
+  plugin.route([settings.path || '/', `${routePath}/index.html`].map((path) => {
     return {
       method: 'GET',
       path: path,
@@ -156,10 +165,10 @@ exports.register = function (plugin, options, next) {
         handler: internals.handler,
         auth: settings.auth
       }
-    };
-  }));
+    }
+  }))
 
-  plugin.route([routePath + '/{path}', routePath + '/{path*2}'].map(function (path) {
+  plugin.route([`${routePath}/{path}`, `${routePath}/{path*2}`].map((path) => {
     return {
       method: 'GET',
       path: path,
@@ -173,14 +182,14 @@ exports.register = function (plugin, options, next) {
         },
         auth: settings.auth
       }
-    };
-  }));
+    }
+  }))
 
-  next();
-};
+  next()
+}
 
 exports.register.attributes = {
   pkg: packageInfo,
   multiple: true,
   dependencies: ['vision', 'inert']
-};
+}
